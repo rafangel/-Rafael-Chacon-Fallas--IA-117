@@ -15,17 +15,32 @@ public class JavaApplication1 {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        int m;
+        m = in.nextInt();
+        String grid[] = new String[m];
+        for(int i = 0; i < m; i++) {
+            grid[i] = in.next();
+        }
+
+    displayPathtoPrincess(m,grid);
+    }
+
+    /*
+    public static void main(String[] args) {
         String[] grid = {"-","-","p","-","-","-","-","-","-","-","-","-","m","-","-","-"};
         displayPathtoPrincess(4,grid);
-    }
+    }*/
     
     public static void displayPathtoPrincess(int N,String[] grid){
         String[][] matrix = new String[N][N];
         int px,py,mx,my;
         px=py=mx=my = -1;
+        String[] line;
         for(int i =0;i<N;i++){
+            line = grid[i].split("");
             for(int j =0;j<N;j++){
-                String value = grid[i*N+j];
+                String value = line[j];
                 matrix[i][j]=value;
                 if(value.compareTo("p")==0){
                     py=i;
