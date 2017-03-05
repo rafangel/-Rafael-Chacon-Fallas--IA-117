@@ -3,63 +3,84 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package javaapplication1;
-import java.util.*;
+package javaapplication2;
+
+import java.util.Scanner;
+
 /**
  *
  * @author rafa
  */
-public class JavaApplication1 {
+public class JavaApplication2 {
 
     /**
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        String[] grid = {"-","-","p","-","-","-","-","-","-","-","-","-","m","-","-","-"};
-        displayPathtoPrincess(4,grid);
+        Scanner in = new Scanner(System.in);
+        int [] pos = new int[2];
+        String board[] = new String[5];
+        for(int i=0;i<2;i++) pos[i] = in.nextInt();
+        for(int i=0;i<5;i++) board[i] = in.next();
+        next_move(pos[0], pos[1], board);
     }
     
-    public static void displayPathtoPrincess(int N,String[] grid){
-        String[][] matrix = new String[N][N];
-        int px,py,mx,my;
-        px=py=mx=my = -1;
-        for(int i =0;i<N;i++){
-            for(int j =0;j<N;j++){
-                String value = grid[i*N+j];
+    static void next_move(int posr, int posc, String[] board){
+        String[][] matrix = new String[5][5];
+        String[] line;
+        for(int i =0;i<5;i++){
+            
+            line = board[i].split("");
+            for(int j =0;j<5;j++){
+                String value = line[j];
                 matrix[i][j]=value;
-                if(value.compareTo("p")==0){
-                    py=i;
-                    px=j;
-                }
-                if(value.compareTo("m")==0){
-                    my=i;
-                    mx=j;
-                }
+                
+                
             }
         }
-        makePath(px,py,mx,my);
+        
+        if(matrix[posr][posc].compareTo("d")==0){
+            System.out.println("CLEAN");
+            matrix[posr][posc]="-";
+        }
+        else{
+            int dx,dy;
+            dx=dy=-1;
+            for(int i =0;i<5;i++){
+                boolean flag = false;
+                for(int j=0;j<5;j++){
+                    if(matrix[i][j].compareTo("d")==0){
+                        dy=i;
+                        dx=j;
+                        flag=true;
+                        break;
+                    }
+                }
+                if(flag){
+                    break;
+                }
+            }
+            if(dx!=-1 && dy!=-1){
+                makePath(dx,dy,posc,posr);
+            }
+        }
     }
+    
+    
     private static void makePath(int px,int py,int mx, int my){
-        String path = "";
-        while(px!=mx || py!=my){
             if(py<my){
-                path += "UP\n";
-                my-=1;
+                System.out.println("UP");
             }
-            if(py>my){
-                path += "DOWN\n";
-                my+=1;
+            else if(py>my){
+                System.out.println("DOWN");
             }
-            if(px>mx){
-                path += "RIGHT\n";
-                mx+=1;
+            else if(px>mx){
+                System.out.println("RIGHT");
             }
-            if(px<mx){
-                path += "LEFT\n";
-                mx-=1;
+            else if(px<mx){
+                System.out.println("LEFT");
             }
-        }
-        System.out.println(path);
+        
     }
     
 }
