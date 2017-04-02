@@ -1,9 +1,9 @@
 {
-  "main": "e4_pacmandfs.java",
-  "url": "https://www.hackerrank.com/challenges/pacman-dfs",
-  "languaje": "Java 7",
+  "main": "e6npuzzle.cpp",
+  "url": "https://www.hackerrank.com/challenges/n-puzzle",
+  "languaje": "C++",
   "onTime": "si",
-  "score": "15",
+  "score": "0",
   "honor-code": "La informacion es correcta y se ajusta al codigo de honor y reglamentos establecidos",
   "grupo": []
 }
