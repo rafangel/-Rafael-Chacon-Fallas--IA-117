@@ -4,6 +4,8 @@ from tkinter import *
 import _thread as thread
 import time
 
+global mapa
+global delay
 
 root = Tk()
 root.title("Proyecto 1 IA")
@@ -15,7 +17,8 @@ root.resizable(0, 0) #Don't allow resizing in the x or y direction
 
 
 # Define a function for the thread
-def print_time( threadName, delay):
+def print_time( threadName):
+   global delay
    count = 0
    while count < 5:
       time.sleep(delay)
@@ -24,8 +27,9 @@ def print_time( threadName, delay):
 
 # Create two threads as follows
 try:
-   thread.start_new_thread( print_time, ("Thread-1", 2, ) )
-   thread.start_new_thread( print_time, ("Thread-2", 4, ) )
+   delay = 4
+   thread.start_new_thread( print_time, ("Thread-1", ) )
+   #thread.start_new_thread( print_time, ("Thread-2", ) )
 except:
    print("Error: unable to start thread")
 
@@ -36,14 +40,16 @@ except:
 file = open("board.txt", "r")
 
 board = file.read()
-print(board)
+mapa = board.split("\n")
+print(mapa)
 
 #************************************
 
 
 
 def send():
-   messagebox.showinfo( "Hello Python", "Sending commmand")
+   action = E1.get()
+   messagebox.showinfo( "Hello Python", action)
 
 B = Button(root, text ="Send", command = send)
 B.place(x=500,y=500)
