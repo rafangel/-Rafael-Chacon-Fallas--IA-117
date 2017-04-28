@@ -43,7 +43,13 @@ newClient = True
 
 
 
-
+def clear():
+   global mapa
+   i = 0                 
+   while(i<len(mapa)-1):
+      line = mapa[i]
+      mapa[i] = line.replace("*"," ")
+      i = i+1
 
 
 def moveLeft():
@@ -494,8 +500,6 @@ def countBlocks():
 
          j= j+1
       i= i+1
-   print("counting blocks:")
-   print(blockList)
 
 
 
@@ -674,7 +678,10 @@ def send():
             print("Error cuadra desconocida")
       except ValueError:
          print("Error comando incorrecto")
-         
+
+   elif(words[0] == "clear" and len(words) == 1):
+      clear()
+      print("smog cleaned")
    else:
       print("Error comando desconocido")
    
