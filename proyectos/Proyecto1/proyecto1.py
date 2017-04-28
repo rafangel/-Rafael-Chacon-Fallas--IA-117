@@ -11,10 +11,12 @@ global delay
 global mostrar
 global ruta
 global pasear
+global parquear
 global blockList
 global test
 global clients
 global lastPos
+global spot
 
 
 root = Tk()
@@ -28,7 +30,15 @@ blockList = []
 clients = []
 mostrar = False
 ruta = False
+pasear = False
+parquear = False
 lastPos = []
+spot = []
+
+
+
+
+
 
 
 def moveLeft():
@@ -65,6 +75,122 @@ def moveDown():
 
 
 
+
+def parquearNext():
+   global mapa
+   global spot
+   global blockList
+   global lastPos
+   
+   posU = isOnMap("U") #[x,y]
+   posBlank = blockList[spot] #[x,y] target pos
+   
+   left = mapa[posU[1]][posU[0]-1]
+   right = mapa[posU[1]][posU[0]+1]
+   up = mapa[posU[1]-1][posU[0]]
+   down = mapa[posU[1]+1][posU[0]]
+
+   if(not((posU[1] == posBlank[1] and (posBlank[0]==posU[0]-2 or posBlank[0]==posU[0]+2)) or
+          (posBlank[0]==posU[0] and (posBlank[1]==posU[1]-2 or posBlank[1]==posU[1]+2)))): # not already in spot
+
+      if(posBlank[1] == posU[1]): #same row *****************************
+         
+         if(posBlank[0] < posU[0]): #previous column
+            
+            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]): #valid move
+               moveLeft()
+            elif((down==" " or down=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveDown()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((right==" " or right=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveRight()
+            
+               
+         else:#column at right
+            
+            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+               
+      elif(posBlank[1] < posU[1]): #previous row **********************
+
+         if(posBlank[0] == posU[0]):
+            
+            if((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+               
+         elif(posBlank[0] < posU[0]): #previous column
+            
+            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            
+               
+         else:# next column
+            
+            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+
+      else:#posBlank[1] > posU[1] next row  *****************************
+
+         if(posBlank[0] == posU[0]):
+            
+            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
+               moveDown()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
+               moveUp()
+               
+         elif(posBlank[0] < posU[0]): #previous column
+            
+            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
+               moveDown()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
+               moveUp()
+               
+         else:# next column
+            
+            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+
+   
+   
 
 def pasearNext():
    global mapa
@@ -268,6 +394,7 @@ def threadFunction( threadName):
    global delay
    global mapa
    global pasear
+   global parquear
    i = 0
    while True:
       time.sleep(0.1)
@@ -275,6 +402,8 @@ def threadFunction( threadName):
          if(i*0.1>delay):
             if(pasear):
                pasearNext()
+            if(parquear):
+               parquearNext()
             rePaint()
             i=0
          else:
@@ -312,11 +441,15 @@ def send():
    global ruta
    global clients
    global pasear
+   global parquear
+   global spot
    action = E1.get()
+   E1.delete(0,END)
    words = action.split(" ")
    
    if(words[0] == "pasear" and len(words) == 1):
       pasear = True
+      parquear = False
       print("paseando")
       
    elif(words[0] == "buscar" and len(words) == 1):
@@ -384,6 +517,9 @@ def send():
       try:
          a = int(words[1])
          if(a<len(blockList)-1):
+            parquear = True
+            pasear = False
+            spot = a
             print("parqueando: " + str(a))
          else:
             print("Error cuadra desconocida")
