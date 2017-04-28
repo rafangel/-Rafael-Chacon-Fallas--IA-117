@@ -10,9 +10,11 @@ global plainBoard
 global delay
 global mostrar
 global ruta
+global pasear
 global blockList
 global test
 global clients
+global lastPos
 
 
 root = Tk()
@@ -24,6 +26,182 @@ root.configure(background='black')
 delay = 0
 blockList = []
 clients = []
+mostrar = False
+ruta = False
+lastPos = []
+
+
+def moveLeft():
+   global mapa
+   global lastPos
+   posU = isOnMap("U")
+   mapa[posU[1]] = mapa[posU[1]][:posU[0]] + "*" + mapa[posU[1]][posU[0] + 1:]
+   mapa[posU[1]] = mapa[posU[1]][:posU[0]-1] + "U" + mapa[posU[1]][posU[0]:]
+   lastPos = posU
+
+def moveRight():
+   global mapa
+   global lastPos
+   posU = isOnMap("U")
+   mapa[posU[1]] = mapa[posU[1]][:posU[0]] + "*" + mapa[posU[1]][posU[0] + 1:]
+   mapa[posU[1]] = mapa[posU[1]][:posU[0]+1] + "U" + mapa[posU[1]][posU[0]+2:]
+   lastPos = posU
+
+def moveUp():
+   global mapa
+   global lastPos
+   posU = isOnMap("U")
+   mapa[posU[1]] = mapa[posU[1]][:posU[0]] + "*" + mapa[posU[1]][posU[0] + 1:]
+   mapa[posU[1]-1] =  mapa[posU[1]-1][:posU[0]] + "U" + mapa[posU[1]-1][posU[0] + 1:]
+   lastPos = posU
+   
+def moveDown():
+   global mapa
+   global lastPos
+   posU = isOnMap("U")
+   mapa[posU[1]] = mapa[posU[1]][:posU[0]] + "*" + mapa[posU[1]][posU[0] + 1:]
+   mapa[posU[1]+1] =  mapa[posU[1]+1][:posU[0]] + "U" + mapa[posU[1]+1][posU[0] + 1:]
+   lastPos = posU
+
+
+
+
+def pasearNext():
+   global mapa
+   global lastPos
+   posBlank = isOnMap(" ")
+   posU = isOnMap("U")
+
+
+   left = mapa[posU[1]][posU[0]-1]
+   right = mapa[posU[1]][posU[0]+1]
+   up = mapa[posU[1]-1][posU[0]]
+   down = mapa[posU[1]+1][posU[0]]
+   
+   # quick search at adjacent spaces
+   if(right == " "):
+      moveRight()
+   elif(down == " "):
+      moveDown()
+   elif(left == " "):
+      moveLeft()
+   elif(up == " "):
+      moveUp()
+
+   # long walk over visited spaces
+   elif(posBlank != []): #unvisited space
+      
+      if(posBlank[1] == posU[1]): #same row *****************************
+         
+         if(posBlank[0] < posU[0]): #previous column
+            
+            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]): #valid move
+               moveLeft()
+            elif((down==" " or down=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveDown()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((right==" " or right=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveRight()
+            
+               
+         else:#column at right
+            
+            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+               
+      elif(posBlank[1] < posU[1]): #previous row **********************
+
+         if(posBlank[0] == posU[0]):
+            
+            if((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+               
+         elif(posBlank[0] < posU[0]): #previous column
+            
+            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            
+               
+         else:# next column
+            
+            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+
+      else:#posBlank[1] > posU[1] next row  *****************************
+
+         if(posBlank[0] == posU[0]):
+            
+            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
+               moveDown()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
+               moveUp()
+               
+         elif(posBlank[0] < posU[0]): #previous column
+            
+            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
+               moveDown()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
+               moveUp()
+               
+         else:# next column
+            
+            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+               moveRight()
+            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+               moveDown()
+            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+               moveLeft()
+            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+               moveUp()
+            
+         
+      
+
+def isOnMap(value):
+   global mapa
+   i = 0                 
+   while(i<len(mapa)-1):   
+      row = mapa[i]
+      j = 0                     
+      while(j<len(row)-1):
+         if(row[j] == value):
+            return [j,i] # structure: [x,y]
+         j = j+1
+      i= i+1
+   return []
 
 
 def countBlocks():
@@ -55,13 +233,32 @@ def countBlocks():
    print(blockList)
 
 
+
+def mapToPlain():
+   global mapa
+   global mostrar
+   global ruta
+   s = ""
+   i = 0                 
+   while(i<len(mapa)-1):
+      line = mapa[i]
+      if(mostrar == False):
+         line = line.replace("*"," ")
+      if(ruta == False):
+         line = line.replace("+"," ")
+      s = s + line + "\n"
+      i = i+1
+   return s[:-1] #eliminate last "\n"
+
+   
 def rePaint():
    global test
-   test.destroy()
    
+   test.destroy()
+
    test = Text(root, bg = "black",fg = "green")
-   test.insert(INSERT,plainBoard)
    test.place(x=150,y=100)
+   test.insert(INSERT,mapToPlain())
 
 
 
@@ -70,11 +267,14 @@ def rePaint():
 def threadFunction( threadName):
    global delay
    global mapa
+   global pasear
    i = 0
    while True:
       time.sleep(0.1)
       if(delay != 0): 
          if(i*0.1>delay):
+            if(pasear):
+               pasearNext()
             rePaint()
             i=0
          else:
@@ -111,10 +311,12 @@ def send():
    global mostrar
    global ruta
    global clients
+   global pasear
    action = E1.get()
    words = action.split(" ")
    
    if(words[0] == "pasear" and len(words) == 1):
+      pasear = True
       print("paseando")
       
    elif(words[0] == "buscar" and len(words) == 1):
