@@ -8,3 +8,9 @@ Por este medio, yo: Rafael Chacón Fallas, como estudiante activo del Instituto 
         Proyecto 1 -
         Seguido de su comentario u observacion
 
+
+# Adicionales
+
+## comando clear
+
+Borra el historial de posiciones visitadas (*).
