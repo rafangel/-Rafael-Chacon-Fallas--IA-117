@@ -12,11 +12,14 @@ global mostrar
 global ruta
 global pasear
 global parquear
+global buscar
 global blockList
 global test
 global clients
 global lastPos
 global spot
+global free
+global newClient
 
 
 root = Tk()
@@ -32,9 +35,11 @@ mostrar = False
 ruta = False
 pasear = False
 parquear = False
+buscar = False
 lastPos = []
 spot = []
-
+free = True
+newClient = True
 
 
 
@@ -74,6 +79,175 @@ def moveDown():
    lastPos = posU
 
 
+def notTrivialMove(posU,posBlank,up,down,left,right):
+   if(posBlank[1] == posU[1]): #same row *****************************
+         
+      if(posBlank[0] < posU[0]): #previous column
+         
+         if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]): #valid move
+            moveLeft()
+         elif((down==" " or down=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveDown()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+            moveUp()
+         elif((right==" " or right=="*") and lastPos != [posU[0],posU[1]+1]):
+            moveRight()
+         
+            
+      else:#column at right
+         
+         if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+            moveDown()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+            moveUp()
+         elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+            
+   elif(posBlank[1] < posU[1]): #previous row **********************
+
+      if(posBlank[0] == posU[0]):
+         
+         if((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+            moveUp()
+         elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+         elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+            moveDown()
+            
+      elif(posBlank[0] < posU[0]): #previous column
+         
+         if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+            moveUp()
+         elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+            moveDown()
+         elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         
+            
+      else:# next column
+         
+         if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+            moveUp()
+         elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+            moveDown()
+         elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+
+   else:#posBlank[1] > posU[1] next row  *****************************
+
+      if(posBlank[0] == posU[0]):
+         
+         if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
+            moveDown()
+         elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
+            moveUp()
+            
+      elif(posBlank[0] < posU[0]): #previous column
+         
+         if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
+            moveDown()
+         elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+         elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
+            moveUp()
+            
+      else:# next column
+         
+         if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
+            moveRight()
+         elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
+            moveDown()
+         elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
+            moveLeft()
+         elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
+            moveUp()
+
+
+
+
+def buscarNext():
+   global buscar
+   global mapa
+   global clients
+   global free
+   global blockList
+   global lastPos
+   global newClient
+
+   if(len(clients) >=1):
+
+      
+      
+      begin = clients[0][0]
+      end = clients[0][1]
+         
+
+      posU = isOnMap("U") #[x,y]
+      left = mapa[posU[1]][posU[0]-1]
+      right = mapa[posU[1]][posU[0]+1]
+      up = mapa[posU[1]-1][posU[0]]
+      down = mapa[posU[1]+1][posU[0]]
+      
+      if(free):
+         posBlank = blockList[begin] #[x,y] target pos
+         
+         if(not((posU[1] == posBlank[1] and (posBlank[0]==posU[0]-2 or posBlank[0]==posU[0]+2)) or
+                (posBlank[0]==posU[0] and (posBlank[1]==posU[1]-2 or posBlank[1]==posU[1]+2)))): # not already in spot
+            notTrivialMove(posU,posBlank,up,down,left,right)
+         else:
+            L = Label(root, text ="      Hello Sir!       ", bg = "green")
+            L.place(x=400,y=40)
+            free = False #client on taxi
+            if(end == -1):
+               end = random.randint(0,len(blockList))
+               #in case of bad random keep trying
+               while(end==begin): 
+                  end = random.randint(0,len(blockList))
+               clients[0][1] = end
+
+            s = "To block "+str(end)+" please"
+            L2 = Label(root, text = s, bg = "green")
+            L2.place(x=400,y=60)
+         
+
+      else:
+         posBlank = blockList[end] #[x,y] target pos
+         
+         if(not((posU[1] == posBlank[1] and (posBlank[0]==posU[0]-2 or posBlank[0]==posU[0]+2)) or
+                (posBlank[0]==posU[0] and (posBlank[1]==posU[1]-2 or posBlank[1]==posU[1]+2)))): # not already in spot
+            notTrivialMove(posU,posBlank,up,down,left,right)
+
+         else:
+            L = Label(root, text ="Have a nice Day!", bg = "green")
+            L.place(x=400,y=40)
+            free = True
+            newCLient = True
+            clients.pop(0) #delete the client
+
+            if(len(clients) >0):
+               s = "Client on block "+str(clients[0][0])
+               L2 = Label(root, text = s, bg = "green")
+               L2.place(x=400,y=60)
+   else:
+      if(newClient):
+         L = Label(root, text = "Finally! no more   ", bg = "green")
+         L.place(x=400,y=60)
+         newClient = False
+   
 
 
 def parquearNext():
@@ -93,101 +267,7 @@ def parquearNext():
    if(not((posU[1] == posBlank[1] and (posBlank[0]==posU[0]-2 or posBlank[0]==posU[0]+2)) or
           (posBlank[0]==posU[0] and (posBlank[1]==posU[1]-2 or posBlank[1]==posU[1]+2)))): # not already in spot
 
-      if(posBlank[1] == posU[1]): #same row *****************************
-         
-         if(posBlank[0] < posU[0]): #previous column
-            
-            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]): #valid move
-               moveLeft()
-            elif((down==" " or down=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveDown()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((right==" " or right=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveRight()
-            
-               
-         else:#column at right
-            
-            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-               
-      elif(posBlank[1] < posU[1]): #previous row **********************
-
-         if(posBlank[0] == posU[0]):
-            
-            if((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-               
-         elif(posBlank[0] < posU[0]): #previous column
-            
-            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            
-               
-         else:# next column
-            
-            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-
-      else:#posBlank[1] > posU[1] next row  *****************************
-
-         if(posBlank[0] == posU[0]):
-            
-            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
-               moveDown()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
-               moveUp()
-               
-         elif(posBlank[0] < posU[0]): #previous column
-            
-            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
-               moveDown()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
-               moveUp()
-               
-         else:# next column
-            
-            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
+      notTrivialMove(posU,posBlank,up,down,left,right)
 
    
    
@@ -217,101 +297,7 @@ def pasearNext():
    # long walk over visited spaces
    elif(posBlank != []): #unvisited space
       
-      if(posBlank[1] == posU[1]): #same row *****************************
-         
-         if(posBlank[0] < posU[0]): #previous column
-            
-            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]): #valid move
-               moveLeft()
-            elif((down==" " or down=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveDown()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((right==" " or right=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveRight()
-            
-               
-         else:#column at right
-            
-            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-               
-      elif(posBlank[1] < posU[1]): #previous row **********************
-
-         if(posBlank[0] == posU[0]):
-            
-            if((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-               
-         elif(posBlank[0] < posU[0]): #previous column
-            
-            if((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            
-               
-         else:# next column
-            
-            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-
-      else:#posBlank[1] > posU[1] next row  *****************************
-
-         if(posBlank[0] == posU[0]):
-            
-            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
-               moveDown()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
-               moveUp()
-               
-         elif(posBlank[0] < posU[0]): #previous column
-            
-            if((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]): 
-               moveDown()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]):
-               moveUp()
-               
-         else:# next column
-            
-            if((right==" " or right=="*") and lastPos != [posU[0]+1,posU[1]]):
-               moveRight()
-            elif((down==" " or down=="*") and lastPos != [posU[0],posU[1]+1]):
-               moveDown()
-            elif((left==" " or left=="*") and lastPos != [posU[0]-1,posU[1]]):
-               moveLeft()
-            elif((up==" " or up=="*") and lastPos != [posU[0],posU[1]-1]): 
-               moveUp()
+      notTrivialMove(posU,posBlank,up,down,left,right)
             
          
       
@@ -395,6 +381,7 @@ def threadFunction( threadName):
    global mapa
    global pasear
    global parquear
+   global buscar
    i = 0
    while True:
       time.sleep(0.1)
@@ -404,6 +391,8 @@ def threadFunction( threadName):
                pasearNext()
             if(parquear):
                parquearNext()
+            if(buscar):
+               buscarNext()
             rePaint()
             i=0
          else:
@@ -411,10 +400,9 @@ def threadFunction( threadName):
          
          
 
-# Create two threads as follows
+# Create new thread
 try:
    thread.start_new_thread( threadFunction, ("Thread-1", ) )
-   #thread.start_new_thread( print_time, ("Thread-2", ) )
 except:
    print("Error: unable to start thread")
 
@@ -426,7 +414,6 @@ file = open("board.txt", "r")
 
 plainBoard = file.read()
 mapa = plainBoard.split("\n")
-#print(mapa)
 
 countBlocks()
 
@@ -442,6 +429,7 @@ def send():
    global clients
    global pasear
    global parquear
+   global buscar
    global spot
    action = E1.get()
    E1.delete(0,END)
@@ -450,9 +438,13 @@ def send():
    if(words[0] == "pasear" and len(words) == 1):
       pasear = True
       parquear = False
+      buscar = False
       print("paseando")
       
    elif(words[0] == "buscar" and len(words) == 1):
+      pasear = False
+      parquear = False
+      buscar = True
       print("buscando")
       
    elif(words[0] == "mostrar" and len(words) == 2):
@@ -519,6 +511,7 @@ def send():
          if(a<len(blockList)-1):
             parquear = True
             pasear = False
+            buscar = False
             spot = a
             print("parqueando: " + str(a))
          else:
