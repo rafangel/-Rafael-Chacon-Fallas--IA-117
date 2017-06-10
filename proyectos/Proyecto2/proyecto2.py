@@ -8,59 +8,51 @@ import random
 global mapa
 global plainBoard
 global delay
-global mostrar
-global ruta
-global pasear
-global parquear
-global buscar
 global blockList
 global homeBuildings
 global workBuildings
-global test
+global T1
+global T2
 global clients
-global lastPos
-global spot
-global free
-global newClient
 global heatMap
 global X  # customizables values
 global D  # for heat map calculations
 global taxis
+global showPeople
+global porcentaje
+global day
+global wakeUpRange
 
 
+day = 100
+wakeUpRange = 10
+porcentaje = 30
 delay = 0
-mostrar = False
-ruta = False
-pasear = False
-parquear = False
-buscar = False
 blockList = []
 homeBuildings = []
 workBuildings = []
 clients = []
-lastPos = []
-spot = []
-free = True
-newClient = True
 heatMap = []
 X = 2
 D = 1
 taxis = []
+showPeople = False
 
 
 #structure of node: [I,J,G,H,parentI,parentJ]
 #structure of path: [ [node1 I,node1 J],[node2 I,node2 J],...]
-#structure of block: [x,y]
+#structure of block: [i,j]
 #structure of home: [pos in blocklist, people there at the moment]
 #structure of working place: [pos in blocklist, people there at the moment]
 #structure of taxi: [name,I,J,state,path,copy of map for history]
+#structure of client: [home,work,start working time] (IDs in blockList) 
 
 
 
 #*************** GUI ***************** 
 root = Tk()
 root.title("Proyecto 2 IA")
-root.geometry("900x640")#size of the root window
+root.geometry("1100x640")#size of the root window
 root.resizable(0, 0) #Don't allow resizing in the x or y direction
 root.configure(background='black')
 
@@ -254,25 +246,55 @@ def countBlocks():
       row = mapa[i]
       j = 1                      #ignore first
       while(j<len(row)-2):       #and last column
-         #print("in loop: " + row + " with i: "+ str(i) + " j: " + str(j) + " value: " + row[j])
          if(row[j-1]=="|" and row[j+1]=="|"):
-            prevRow =mapa[i-1]
+            prevRow = mapa[i-1]
             nextRow = mapa[i+1]
             if(len(prevRow)>j and len(nextRow)>j): #checks maps dimensions 
                if(prevRow[j]=="-" and nextRow[j]=="-"):#block detected
-                  blockList.append([j,i]) #structure of block: [x,y]
-
+                  blockList.append([i,j]) #structure of block: [i,j]
                   if(row[j] == "."): #homes
                      homeBuildings.append([len(blockList)-1,0]) #structure of home: [pos in blocklist, people there at the moment]
                      
-                  if(row[j] == "/"):#working place
+                  if(row[j] == "/"):#working places
                      workBuildings.append([len(blockList)-1,0]) #structure of working place: [pos in blocklist, people there at the moment]
 
                      
-                     #clients.append([len(blockList)-1,-1]) #structure of client: [begin,end] => begin at current block and end isn't generated here because not all blocks have been counted 
          j+=1
       i+=1
 
+
+
+#**** add people to block in map *****
+
+def peopleInBlock(Pos):
+   global homeBuildings
+   global workBuildings
+   i=0
+   while(i<len(homeBuildings)):
+      if(homeBuildings[i][0] == Pos):
+         return homeBuildings[i][1]
+      i+=1
+
+   j=0
+   while(j<len(workBuildings)):
+      if(workBuildings[j][0] == Pos):
+         return workBuildings[j][1]
+      j+=1
+   
+
+
+
+#**** add people to block in map *****
+
+def peopleInBlocks(line,i):
+   global blockList
+   j=0
+   while(j<len(blockList)):
+      if(blockList[j][0] == i): #the block is in that line
+         amount = peopleInBlock(j)
+         line = line[0:blockList[j][1]] + str(amount) + line[blockList[j][1]+1:]
+      j+=1
+   return line
 
 
 #***** add taxis to line of map ******
@@ -287,21 +309,35 @@ def taxisInLine(i):
          line = line[0:taxis[j][2]] + taxis[j][0] + line[taxis[j][2]+1:]
       j+=1
    return line
-         
 
 
 #**** Map to string for printing *****
 
 def mapToPlain():
-   global mostrar
-   global ruta
+   global showPeople
+   global mapa
    s = ""
    i = 0                 
    while(i<len(mapa)):
       line = taxisInLine(i)
+      if(showPeople):
+         line = peopleInBlocks(line,i)
       s += line + "\n"
       i = i+1
-   return s 
+   return s
+
+
+#** Heat Map to string for printing ***
+
+def heatMapToPlain():
+   global heatMap
+   s = ""
+   i = 0                 
+   while(i<len(heatMap)):
+      line = heatMap[i]
+      s += line + "\n"
+      i = i+1
+   return s
 
 
 
@@ -312,10 +348,10 @@ def beginHeatMap():
    global mapa
 
    i=0
-   while(i<len(mapa)-1):
+   while(i<len(mapa)):
       j=0
       heatMap.append(mapa[i])
-      while(j<len(mapa[i])-1):
+      while(j<len(mapa[i])):
          if(mapa[i][j] == " "):
             heatMap[i] = heatMap[i][0:j] +"0"+ heatMap[i][j+1:]#initial
          j+=1
@@ -339,7 +375,7 @@ def readBoard():
 
 
 
-#*************************************
+#******** create N taxis ************
 
 def hireTaxis(n):
    global taxis
@@ -360,7 +396,78 @@ def hireTaxis(n):
       history = mapa
       taxis.append([names[i],posI,posJ,state,path,history]) #taxi structure: [name,I,J,state,path,copy of map for history]
       i+=1
+
+
+#****** valid blockID as home *******
+
+def getHome(blockID):
+   global homeBuildings
+   i=0
+   while(i<len(homeBuildings)):
+      if(homeBuildings[i][0] == blockID):
+         return i
+      i+=1
+   return -1
+         
+
+#****** valid blockID as work *******
+
+def getWorkPlace(blockID):
+   global workBuildings
+   i=0
+   while(i<len(workBuildings)):
+      if(workBuildings[i][0] == blockID):
+         return i
+      i+=1
+   return -1
+
+
+
+#****** valid blockID as home *******
+
+def validHome(home):
+   global homeBuildings
+   i=0
+   while(i<len(homeBuildings)):
+      if(homeBuildings[i][0] == home):
+         return True
+      i+=1
+   return False
+         
+
+#****** valid blockID as work *******
+
+def validWorkPlace(work):
+   global workBuildings
+   i=0
+   while(i<len(workBuildings)):
+      if(workBuildings[i][0] == work):
+         return True
+      i+=1
+   return False
    
+
+
+#******** create N clients ***********
+
+def addClients(n):
+   global clients
+   global blockList
+   global workBuildings
+   global homeBuildings
+   i =0
+   while(i<n):
+      home = random.randint(0,len(homeBuildings)-1)
+      work = random.randint(0,len(workBuildings)-1)
+
+      homeBuildings[home][1] +=1
+      
+      home = homeBuildings[home][0]
+      work = workBuildings[work][0]
+      
+      clients.append([home,work,0])
+      i+=1
+      
 
 
 #********** parse command ************
@@ -369,38 +476,70 @@ def send():
 
    global blockList
    global delay
-   global mostrar
-   global ruta
+   global showPeople
    global clients
-   global pasear
-   global parquear
-   global buscar
-   global spot
+   global homeBuildings
+   global porcentaje
+   global day
+   global wakeUpRange
    
    words = getAction()
+   print(words)
 
    if(words[0] == "animar" and len(words)==2):
-      n = words[1]
+      n = int(words[1])
+      delay = n
       
    elif(words[0] == "clientes" and len(words)==2):
-      n = words[1]
+      n = int(words[1])
+      addClients(n)
       
    elif(words[0] == "cliente" and len(words)==3):
-      home = words[1]
-      work = words[2]
+      home = int(words[1])
+      work = int(words[2])
+      if(validHome(home) and validWorkPlace(work)):
+         clients.append([home,work,0])
+         homeBuildings[getHome(home)][1] += 1
+      else:
+         print("error invalid blockID for home or work")
       
    elif(words[0] == "taxis" and len(words)==2):
-      print(words)
       n = int(words[1])
-      print(n)
       hireTaxis(n)
-      rePaint()
+
+   elif(words[0] == "personas" and len(words)==2):
+      if(words[1]=="on"):
+         showPeople = True
+      elif(words[1]=="off"):
+         showPeople = False
+      else:
+         print("error, comando incorrecto")
+
+   elif(words[0] == "trabajar" and len(words)==2):
+      n=int(words[1])
+      if(n<100 and n>0):
+         porcentaje = n
+      else:
+         print("error porcentaje incorrecto")
+
+   elif(words[0] == "iniciarDia" and len(words)==2):
+      n=int(words[1])
+      if(n<day-porcentaje):
+         wakeUpRange = n
+      else:
+         print("rango propenso a errores")
+
+   elif(words[0] == "dia" and len(words)==2):
+      n=int(words[1])
+      day = n
       
    elif(len(words[0])==1): #actions for one taxi
       taxi = words[0]
       
    else:
-      print("error, wrong action")
+      print("error, comando incorrecto")
+
+   rePaint()
    
      
    
@@ -416,21 +555,30 @@ def getAction():
 #********** refresh GUI **************
    
 def rePaint(): 
-   global test
+   global T1
+   global T2
+   
+   T1.destroy()
+   T2.destroy()
 
-   test.destroy()
+   T1 = Text(root, bg = "black",fg = "green")
+   T1.place(x=50,y=100)
+   T1.insert(INSERT,mapToPlain())
 
-   test = Text(root, bg = "black",fg = "green")
-   test.place(x=150,y=100)
-   test.insert(INSERT,mapToPlain())
+   T2 = Text(root, bg = "black",fg = "green")
+   T2.place(x=500,y=100)
+   T2.insert(INSERT,heatMapToPlain())
 
 
 
 
 #*************** GUI *****************
    
-test = Text(root, bg = "black")
-test.place(x=150,y=100)
+T1 = Text(root, bg = "black")
+T1.place(x=50,y=100)
+
+T2 = Text(root, bg = "black")
+T2.place(x=500,y=100)
 
 
 B = Button(root, text ="Send", command = send, bg = "green")
