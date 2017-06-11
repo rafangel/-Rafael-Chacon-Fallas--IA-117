@@ -15,8 +15,9 @@ global T1
 global T2
 global clients
 global heatMap
-global X  # customizables values
-global D  # for heat map calculations
+global X 
+global N   
+global D 
 global taxis
 global showPeople
 global porcentaje
@@ -33,8 +34,9 @@ homeBuildings = []
 workBuildings = []
 clients = []
 heatMap = []
-X = 2
-D = 1
+X = 3 # customizables 
+N = 2 # values for heat 
+D = 1 # map calculations
 taxis = []
 showPeople = False
 
@@ -44,7 +46,7 @@ showPeople = False
 #structure of block: [i,j]
 #structure of home: [pos in blocklist, people there at the moment]
 #structure of working place: [pos in blocklist, people there at the moment]
-#structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+#structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
 #structure of client: [home,work,start working time, inHome, taxiCalled] (IDs in blockList) 
 
 
@@ -390,7 +392,7 @@ def taxisInLine(line,i):
 def copyMap():
    global mapa
    global taxis
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
 
    copia = []          # force copy to be in 
    copia.extend(mapa)  # different memory space
@@ -493,7 +495,7 @@ def nextBlank(ID):
 
    taxi = taxis[ID]
    history = taxi[7]
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
    bestI = -1
    bestJ = -1
    distance = 1000000
@@ -515,13 +517,75 @@ def nextBlank(ID):
    else:
       return []
 
+#**************************************
+
+def decreaseJams():
+   global heatMap
+   global D
+
+   i=0
+   while(i<len(heatMap)):
+      j=0
+      while(j<len(heatMap[i])):
+         try:
+            num = int(heatMap[i][j])
+            if(num > 0): 
+               num -= D
+               if(num<0):#minimun value
+                  num = 0
+            
+               heatMap[i] = heatMap[i][0:j] + str(num)+ heatMap[i][j+1:]
+            j+=1
+         except ValueError:
+            j+=1
+      i+=1
+   
+
+
+#***** amount of taxis in the pos *****
+
+def taxisThere(I,J):
+   global taxis
+   num = 0
+   k=0
+   while(k<len(taxis)):
+      taxi = taxis[k]
+      if(taxi[1]==I and taxi[2]==J):
+         num+=1
+      k+=1
+   return num
+   
+
+
+#*** caculate delay for taxi in Jam ***
+
+def carJam(ID):
+   global taxis
+   global heatMap
+   global X
+   global N
+   global D
+
+   taxi = taxis[ID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
+   I=taxi[1]
+   J=taxi[2]
+   if(N <= taxisThere(I,J)):
+      num = int(heatMap[I][J])+X
+      if(num >9): #max value to prevent errors
+         num = 9
+      heatMap[I] = heatMap[I][0:J] + str(num)+ heatMap[I][J+1:]
+      taxis[ID][9] = num
+      
+   
+
 #***** move taxi one step in path *****
 
 def advancePath(ID):
    global taxis
    
    taxi = taxis[ID]
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
    path = taxi[4]
    nextI = path[0][0]
    nextJ =  path[0][1]
@@ -530,6 +594,7 @@ def advancePath(ID):
    path.pop(0)
    taxis[ID][4] = path
    taxis[ID][7].append([nextI,nextJ]) #add current pos to history
+   carJam(ID)
       
 
 
@@ -537,7 +602,8 @@ def move(ID,i,j):
    global taxis
    taxis[ID][1] = i
    taxis[ID][2] = j
-   taxis[ID][7].append([i,j])
+   taxis[ID][7].append([i,j]) #add current pos to history
+   carJam(ID)
    
 #**** move taxi in state pasear ******
 
@@ -545,7 +611,7 @@ def pasearTaxi(ID):
    global taxis
    
    taxi = taxis[ID]
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
    path = taxi[4]
    history = taxi[7]
    
@@ -575,8 +641,8 @@ def pasearTaxi(ID):
 
       # long walk over visited spaces
       elif(posBlank != []): #unvisited space
-         print("long walk")
-         taxis[ID][4] = Astar(i,j,posBlank[0],posBlank[1]) #sets path 
+         taxis[ID][4] = Astar(i,j,posBlank[0],posBlank[1]) #sets path
+         advancePath(ID)
    
 
 
@@ -590,14 +656,14 @@ def searchClient(ID):
    global workBuildings
    
    taxi = taxis[ID]
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
    i=0
    closestClient = []
    distance = 1000000
    clientID = -1
    while(i<len(clients)):
       client = clients[i]
-      #structure of client: [home,work,start working time, inHome, taxiCalled] (IDs in blockList) 
+      #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
       if(not client[4]):#client have not ask for a taxi
          taxiI=taxi[1]
          taxiJ=taxi[2]
@@ -623,8 +689,8 @@ def pickUpClient(ID):
    global taxis
    global blockList
    
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
-   #structure of client: [home,work,start working time, taxiCalled] (IDs in blockList)
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
+   #structure of client: [home,work,start working time, taxiCalled,outOfWork]
    taxi = taxis[ID]
    clients[taxi[8]][3] = False #client not longer in home
    client = clients[taxi[8]]
@@ -638,7 +704,7 @@ def pickUpClient(ID):
 def leaveClient(ID):
    global clients
    client = clients[ID]
-   #structure of client: [home,work,start working time, inHome, taxiCalled] (IDs in blockList)
+   #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
    addPersonInBlock(client[1])
    
    
@@ -653,36 +719,44 @@ def moveTaxis():
    i=0
    while(i<len(taxis)):
       taxi = taxis[i]
-      #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+      #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
       state = taxi[3]
       path = taxi[4]
       clientID = taxi[8]
+      wait = taxi[9]
 
-      if(state == "parquear"):
-         if(len(path)>0):
-            advancePath(i)
-         
-      if(state == "buscar"):
-         
-         if(clientID != -1):
+      if(wait>0):
+         taxis[i][9]-= 1
+
+      else:
+
+         if(state == "parquear"):
             if(len(path)>0):
                advancePath(i)
-            else:
-               #either pick up or leave client
-               client = clients[taxi[8]]
-               #structure of client: [home,work,start working time, inHome, taxiCalled] (IDs in blockList)
-               if(client[3]):
-                  pickUpClient(i)
+               
+         if(state == "pasear"):
+            pasearTaxi(i)
+            
+         if(state == "buscar"):
+            
+            if(clientID != -1):
+               if(len(path)>0):
+                  advancePath(i)
                else:
-                  leaveClient(clientID)
-                  taxis[i][8] = -1
-         else:
-            searchClient(i)
+                  #either pick up or leave client
+                  client = clients[taxi[8]]
+                  #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
+                  if(client[3]):
+                     pickUpClient(i)
+                  else:
+                     leaveClient(clientID)
+                     taxis[i][8] = -1
+            else:
+               searchClient(i)
             
             
 
-      if(state == "pasear"):
-         pasearTaxi(i)
+        
 
       i+=1
 
@@ -699,6 +773,7 @@ def threadFunction( threadName):
       time.sleep(0.1)
       if(delay != 0): 
          if(i*0.1>delay):
+            decreaseJams()
             moveTaxis()
             rePaint()
             i=0
@@ -751,8 +826,8 @@ def hireTaxis(n):
       state = "parquear" #initial state
       path=[]
       history = [[posI,posJ]]
-      taxis.append([names[i],posI,posJ,state,path,False,False,history,-1])
-      #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+      taxis.append([names[i],posI,posJ,state,path,False,False,history,-1,0])
+      #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
       i+=1
 
 
@@ -823,8 +898,8 @@ def addClients(n):
       home = homeBuildings[home][0]
       work = workBuildings[work][0]
       
-      clients.append([home,work,0,True,False])
-      #structure of client: [home,work,start working time, inHome, taxiCalled]
+      clients.append([home,work,0,True,False,False])
+      #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
       i+=1
       
 
@@ -862,7 +937,7 @@ def taxiAction(words):
    global blockList
    i=0
    name = words[0]
-   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
+   #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
 
    
    
@@ -952,8 +1027,8 @@ def send():
       home = int(words[1])
       work = int(words[2])
       if(validHome(home) and validWorkPlace(work)):
-         clients.append([home,work,0,True,False])
-         #structure of client: [home,work,start working time, inHome, taxiCalled]
+         clients.append([home,work,0,True,False,False])
+         #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
          homeBuildings[getHome(home)][1] += 1 #at one person to that building
          print("cliente agregado con home: "+str(home)+" y work: "+str(work))
       else:
