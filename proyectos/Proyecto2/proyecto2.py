@@ -23,11 +23,14 @@ global showPeople
 global porcentaje
 global day
 global wakeUpRange
+global hora
 
 
-day = 100
-wakeUpRange = 10
-porcentaje = 30
+day = 500       # customizable 
+wakeUpRange = 20 # configurations
+porcentaje = 30  # for a day
+hora = 0
+
 delay = 0
 blockList = []
 homeBuildings = []
@@ -445,12 +448,15 @@ def mapToPlain():
 
 def heatMapToPlain():
    global heatMap
+   global hora
    s = ""
    i = 0                 
    while(i<len(heatMap)):
       line = heatMap[i]
       s += line + "\n"
       i = i+1
+
+   s += "Hora: "+str(hora)+"\n"
    return s
 
 
@@ -654,29 +660,47 @@ def searchClient(ID):
    global blockList
    global homeBuildings
    global workBuildings
+   global day
+   global hora
+   global porcentaje
    
    taxi = taxis[ID]
    #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
-   i=0
+   taxiI=taxi[1]
+   taxiJ=taxi[2]
    closestClient = []
    distance = 1000000
    clientID = -1
+   num = -1
+   pos = -1
+   i=0
    while(i<len(clients)):
       client = clients[i]
-      #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
-      if(not client[4]):#client have not ask for a taxi
-         taxiI=taxi[1]
-         taxiJ=taxi[2]
-         block = blockList[client[0]] #[i,j]
+      outOfWork = (client[2]+ day*porcentaje/100)
+      #structure of client: [home,work,start working time, inHome, taxiCalled,inTaxi]
+      if(client[3] and (hora>=client[2] and hora<outOfWork) and not client[4] ):
+         #client is at home, already woke up in the morning and haven't ask for a taxi
+         num=0
+         
+      if(not(client[3]) and hora>=outOfWork and not(client[4])):
+         #client is at work, worked enough and haven't ask for a taxi
+         num=1
+
+      if(num != -1):
+         block = blockList[client[num]] #[i,j] 
          d2 = abs(taxiI - block[0])+abs(taxiJ - block[1])
          if(distance > d2):#closest client
             closestClient = client
             distance = d2
             clientID = i
+            pos = num
+            
+      num =-1
       i+=1
       
    if(closestClient != []):
-      block = blockList[closestClient[0]] #[i,j]
+      block = blockList[closestClient[pos]] #[i,j]
+      print("choosed client "+str(clientID)+" by taxi "+taxi[0]+", going to block: "+str(closestClient[pos]))
       taxis[ID][4] = Astar(taxis[ID][1],taxis[ID][2],block[0]+2,block[1]) #path
       taxis[ID][8] = clientID
       clients[clientID][4] = True #client called a taxi
@@ -690,22 +714,49 @@ def pickUpClient(ID):
    global blockList
    
    #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID,waitingTime]
-   #structure of client: [home,work,start working time, taxiCalled,outOfWork]
+   #structure of client: [home,work,start working time, taxiCalled,inTaxi]
    taxi = taxis[ID]
-   clients[taxi[8]][3] = False #client not longer in home
+   
    client = clients[taxi[8]]
-   removePersonInBlock(client[0])
-   block = blockList[client[1]]
-   taxis[ID][4] = Astar(taxi[1],taxi[2],block[0]+2,block[1])#set new path
+   clients[taxi[8]][5] = True #client is now in the taxi
+
+   if(client[3]):#client is at home
+      clients[taxi[8]][3] = False #client not longer in home
+      removePersonInBlock(client[0])
+      block = blockList[client[1]]
+      print("picked up client "+str(taxi[8])+" by taxi "+taxi[0]+" wants to go to block: "+str(client[1]))
+      taxis[ID][4] = Astar(taxi[1],taxi[2],block[0]+2,block[1])#set new path
+         
+   else:#client is at work
+      removePersonInBlock(client[1])
+      block = blockList[client[0]]
+      print("picked up client "+str(taxi[8])+" by taxi "+taxi[0]+" wants to go to block: "+str(client[0]))
+      taxis[ID][4] = Astar(taxi[1],taxi[2],block[0]+2,block[1])#set new path
+      
+   
 
 
 #*** leave client at home or work ***
 
 def leaveClient(ID):
    global clients
+   global hora
+   global day
+   global porcentaje
+   
    client = clients[ID]
-   #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
-   addPersonInBlock(client[1])
+   #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork
+   clients[ID][4] = False
+   clients[ID][5] = False #client not longer in the taxi
+   if(hora<(client[2]+ day*porcentaje/100)):#early in the day, going to work
+      addPersonInBlock(client[1])
+      print("leaved client: "+str(ID)+" at block: "+str(client[1]))
+      
+         
+   if(hora>=(client[2]+ day*porcentaje/100)):#late in the day, going to home
+      addPersonInBlock(client[0])
+      clients[ID][3] = True #client is at home
+      print("leaved client: "+str(ID)+" at block: "+str(client[0]))
    
    
 
@@ -745,8 +796,8 @@ def moveTaxis():
                else:
                   #either pick up or leave client
                   client = clients[taxi[8]]
-                  #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
-                  if(client[3]):
+                  #structure of client: [home,work,start working time, inHome, taxiCalled,inTaxi]
+                  if(not client[5]):
                      pickUpClient(i)
                   else:
                      leaveClient(clientID)
@@ -764,19 +815,29 @@ def moveTaxis():
 
 
 
-#** Define a function for the thread ************************************************************************
+#****** Define a function for the thread ************************************************************************
 def threadFunction( threadName):
    global delay
    global mapa
+   global day
+   global hora
    i = 0
    while True:
       time.sleep(0.1)
       if(delay != 0): 
          if(i*0.1>delay):
+            
             decreaseJams()
             moveTaxis()
             rePaint()
             i=0
+            
+            if(hora<day):
+               hora+=1
+               #print("the time is: "+str(hora))
+            else:
+               hora = 0
+               print("Good Morning! It's a whole new day!")
          else:
             i=i+1
          
@@ -880,6 +941,21 @@ def validWorkPlace(work):
    return False
    
 
+#*************
+
+def resetWakeUps():
+   global clients
+   global wakeUpRange
+   global day
+   global porcentaje
+
+   i=0
+   while(i<len(clients)):
+      wakeUp = random.randint(0,wakeUpRange-1)
+      clients[i][2] = wakeUp
+      print("client "+str(i)+" wake up at: "+str(wakeUp)+" out of work at: "+str(wakeUp+ day*porcentaje/100))
+      i+=1
+
 
 #******** create N clients ***********
 
@@ -888,6 +964,11 @@ def addClients(n):
    global blockList
    global workBuildings
    global homeBuildings
+   global wakeUpRange
+
+   global day
+   global porcentaje
+   
    i =0
    while(i<n):
       home = random.randint(0,len(homeBuildings)-1)
@@ -897,9 +978,11 @@ def addClients(n):
       
       home = homeBuildings[home][0]
       work = workBuildings[work][0]
+      wakeUp = random.randint(0,wakeUpRange-1)
       
-      clients.append([home,work,0,True,False,False])
-      #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
+      clients.append([home,work,wakeUp,True,False,False])
+      print("client "+str(i)+" wake up at: "+str(wakeUp)+" out of work at: "+str(wakeUp+ day*porcentaje/100))
+      #structure of client: [home,work,start working time, inHome, taxiCalled,inTaxi]
       i+=1
       
 
@@ -1021,16 +1104,16 @@ def send():
    elif(words[0] == "clientes" and len(words)==2):
       n = int(words[1])
       addClients(n)
-      print("creados "+str(n)+" clientes")
       
    elif(words[0] == "cliente" and len(words)==3):
       home = int(words[1])
       work = int(words[2])
       if(validHome(home) and validWorkPlace(work)):
-         clients.append([home,work,0,True,False,False])
-         #structure of client: [home,work,start working time, inHome, taxiCalled,outOfWork]
+         wakeUp = random.randint(0,wakeUpRange-1)
+         clients.append([home,work,wakeUp,True,False,False])
+         #structure of client: [home,work,start working time, inHome, taxiCalled,inTaxi]
          homeBuildings[getHome(home)][1] += 1 #at one person to that building
-         print("cliente agregado con home: "+str(home)+" y work: "+str(work))
+         print("client "+str(len(clients)-1)+" wake up at: "+str(wakeUp)+" out of work at: "+str(wakeUp+ day*porcentaje/100))
       else:
          print("error invalid blockID for home or work")
       
@@ -1053,19 +1136,23 @@ def send():
       n=int(words[1])
       if(n<100 and n>0):
          porcentaje = n
+         print("se trabajara un "+str(n)+"% del dia")
       else:
          print("error porcentaje incorrecto")
 
    elif(words[0] == "iniciarDia" and len(words)==2):
       n=int(words[1])
-      if(n<day-porcentaje):
+      if(n + ( day * porcentaje/100 ) < day):
          wakeUpRange = n
+         print("nuevo rango para comenzar a trabajar: "+str(wakeUpRange))
+         resetWakeUps() #recalculate wakeUp time for each client
       else:
          print("rango propenso a errores")
 
    elif(words[0] == "dia" and len(words)==2):
       n=int(words[1])
       day = n
+      print("el dia ahora es de "+str(n)+" ciclos")
       
    elif(len(words[0])==1): #actions for one taxi
       if(not taxiAction(words)):
