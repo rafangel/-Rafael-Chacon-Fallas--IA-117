@@ -550,22 +550,28 @@ def searchClient(ID):
    taxi = taxis[ID]
    #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
    i=0
-   print("clients")
-   print(clients)
+   closestClient = []
+   distance = 1000000
+   clientID = -1
    while(i<len(clients)):
       client = clients[i]
       #structure of client: [home,work,start working time, inHome, taxiCalled] (IDs in blockList) 
       if(not client[4]):#client have not ask for a taxi
-         print("client at home: " + str(i))
-         print(client)
+         taxiI=taxi[1]
+         taxiJ=taxi[2]
          block = blockList[client[0]] #[i,j]
-         taxis[ID][4] = Astar(taxis[ID][1],taxis[ID][2],block[0]+2,block[1]) #path
-         taxis[ID][8] = i #clientID
-         clients[i][4] = True #client called a taxi
-         
-         print(taxis[ID])
-         break
+         d2 = abs(taxiI - block[0])+abs(taxiJ - block[1])
+         if(distance > d2):#closest client
+            closestClient = client
+            distance = d2
+            clientID = i
       i+=1
+      
+   if(closestClient != []):
+      block = blockList[closestClient[0]] #[i,j]
+      taxis[ID][4] = Astar(taxis[ID][1],taxis[ID][2],block[0]+2,block[1]) #path
+      taxis[ID][8] = clientID
+      clients[clientID][4] = True #client called a taxi
 
 
 #** pick up client at home or work **
@@ -823,12 +829,15 @@ def taxiAction(words):
          if(len(words) == 2):
             if(words[1] == "pasear"):
                changeTaxiState(words[1],i)
+               print("state=pasear para taxi "+taxis[i][0])
                return True
             elif(words[1] == "buscar"):
                changeTaxiState(words[1],i)
+               print("state=buscar para taxi "+taxis[i][0])
                return True
             elif(words[1] == "clear"):
                clearTaxiHistory(i)
+               print("historial borrado para taxi "+taxis[i][0])
                return True
             else:
                return False
@@ -840,20 +849,25 @@ def taxiAction(words):
                num = int(words[2])
                if(num <len(blockList)):
                   pathToBlock(i,num)
+                  print("state=parquear para taxi "+taxis[i][0]+ " hacia cuadra "+words[2])
                   return True
                
             elif(words[1] == "mostrar"):
                if(words[2] == "on"):
+                  print("mostrar ON para taxi "+taxis[i][0])
                   taxis[i][5] = True
                   return True
                elif(words[2] == "off"):
+                  print("mostrar OFF para taxi "+taxis[i][0])
                   taxis[i][5] = False
                   return True
             elif(words[1] == "ruta"):
                if(words[2] == "on"):
+                  print("ruta ON para taxi "+taxis[i][0])
                   taxis[i][6] = True
                   return True
                elif(words[2] == "off"):
+                  print("ruta OFF para taxi "+taxis[i][0])
                   taxis[i][6] = False
                   return True
                
@@ -881,15 +895,16 @@ def send():
    global wakeUpRange
    
    words = getAction()
-   print(words)
 
    if(words[0] == "animar" and len(words)==2):
       n = int(words[1])
       delay = n/1000
+      print("animando a "+str(n)+" ms")
       
    elif(words[0] == "clientes" and len(words)==2):
       n = int(words[1])
       addClients(n)
+      print("creados "+str(n)+" clientes")
       
    elif(words[0] == "cliente" and len(words)==3):
       home = int(words[1])
@@ -898,18 +913,22 @@ def send():
          clients.append([home,work,0,True,False])
          #structure of client: [home,work,start working time, inHome, taxiCalled]
          homeBuildings[getHome(home)][1] += 1 #at one person to that building
+         print("cliente agregado con home: "+str(home)+" y work: "+str(work))
       else:
          print("error invalid blockID for home or work")
       
    elif(words[0] == "taxis" and len(words)==2):
       n = int(words[1])
       hireTaxis(n)
+      print("contratados "+str(n)+" taxis")
 
    elif(words[0] == "personas" and len(words)==2):
       if(words[1]=="on"):
          showPeople = True
+         print("personas on")
       elif(words[1]=="off"):
          showPeople = False
+         print("personas off")
       else:
          print("error, comando incorrecto")
 
@@ -934,13 +953,11 @@ def send():
    elif(len(words[0])==1): #actions for one taxi
       if(not taxiAction(words)):
          print("error comando incorrecto")
-      else:
-         print("correct taxi action")
       
    else:
       print("error, comando incorrecto")
 
-   rePaint()
+   
    
      
    
