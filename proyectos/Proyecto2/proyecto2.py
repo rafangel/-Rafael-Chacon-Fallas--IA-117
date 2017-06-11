@@ -77,41 +77,73 @@ def validMove(I,J):
 def heuristic(iniI,iniJ,endI,endJ):
    global heatMap
    total = 0
-   while(iniI != endI or iniJ != endJ):
-      
-      if(iniI > endI and validMove(iniI-1,iniJ)):
-         iniI-=1 #move up
-         total += 1 + int(heatMap[iniI][iniJ])
-         
-      elif(iniI < endI and validMove(iniI+1,iniJ)):
-         iniI+=1 #move down
-         total += 1 + int(heatMap[iniI][iniJ])
 
-      elif(iniJ > endJ and validMove(iniI,iniJ-1)):
+   lastI = -1
+   lastJ = -1
+   
+   none = False
+   while(iniI != endI or iniJ != endJ):
+      #print("heuristic iniI: "+str(iniI)+" iniJ: "+str(iniJ)+" endI: "+str(endI)+" endJ: "+str(endJ)+" lastI: "+str(lastI)+" lastJ: "+str(lastJ))
+
+      if(iniJ > endJ and validMove(iniI,iniJ-1) and (lastI!=iniI or lastJ!=iniJ-1)):
+         lastI = iniI
+         lastJ = iniJ
          iniJ-=1 #move left
          total += 1 + int(heatMap[iniI][iniJ])
-         
-      elif(iniJ < endJ and validMove(iniI,iniJ+1)):
+         none = False
+      elif(iniI > endI and validMove(iniI-1,iniJ)and (lastI!=iniI-1 or lastJ!=iniJ)):
+         lastI = iniI
+         lastJ = iniJ
+         iniI-=1 #move up
+         total += 1 + int(heatMap[iniI][iniJ])
+         none = False
+      elif(iniI < endI and validMove(iniI+1,iniJ) and (lastI!=iniI+1 or lastJ!=iniJ)):
+         lastI = iniI
+         lastJ = iniJ
+         iniI+=1 #move down
+         total += 1 + int(heatMap[iniI][iniJ])
+         none = False
+      
+      elif(iniJ < endJ and validMove(iniI,iniJ+1) and (lastI!=iniI or lastJ!=iniJ+1)):
+         lastI = iniI
+         lastJ = iniJ
          iniJ+=1 #move right
          total += 1 + int(heatMap[iniI][iniJ])
+         none = False
+         
          
       else:#rare cases
-         if(iniJ == endJ):
-            iniJ+=2#around de corner
-            if(iniI > endI):
-               iniI-=1 #move up
-            if(iniI < endI):
-               iniI+=1 #move down
-            total += 15 #penalize this special case with 5 in each space
-            
-         if(iniI == endI):
-            iniI+=2#around de corner
-            if(iniJ > endJ):
+         if(none):#entered in none "if" last cicle
+            if(validMove(iniI,iniJ-1) and (lastI!=iniI or lastJ!=iniJ-1)):
+               lastI = iniI
+               lastJ = iniJ
                iniJ-=1 #move left
-            if(iniJ < endJ):
-               iniJ+=1 #move right
+               total += 1 + int(heatMap[iniI][iniJ])
+               none = False
+
+            elif(validMove(iniI-1,iniJ) and (lastI!=iniI-1 or lastJ!=iniJ)):
+               lastI = iniI
+               lastJ = iniJ
+               iniI-=1 #move up
+               total += 1 + int(heatMap[iniI][iniJ])
+               none = False
                
-            total += 15 #penalize this special case with 5 in each space
+            elif(validMove(iniI+1,iniJ) and (lastI!=iniI+1 or lastJ!=iniJ)):
+               lastI = iniI
+               lastJ = iniJ
+               iniI+=1 #move down
+               total += 1 + int(heatMap[iniI][iniJ])
+               none = False
+               
+            elif(validMove(iniI,iniJ+1) and (lastI!=iniI or lastJ!=iniJ+1)):
+               lastI = iniI
+               lastJ = iniJ
+               iniJ+=1 #move right
+               total += 1 + int(heatMap[iniI][iniJ])
+               none = False
+            
+         else:
+            none = True
          
    return total
 
@@ -177,7 +209,6 @@ def Astar(iniI,iniJ,endI,endJ):
    global heatMap
    openList = []
    closedList = []
-   
    h=heuristic(iniI,iniJ,endI,endJ)
    current = [iniI,iniJ,0,h,iniI,iniJ] #structure of node: [I,J,G,H,parentI,parentJ]
    
@@ -186,7 +217,6 @@ def Astar(iniI,iniJ,endI,endJ):
 
 
    while(openList != [] and goalNotFound(endI,endJ,closedList)):
-      
       pos = lowestF(openList)
       current = openList.pop(pos)
       closedList.append(current)
@@ -461,18 +491,29 @@ def nextBlank(ID):
    global taxis
    global mapa
 
-   history = taxis[ID][7]
+   taxi = taxis[ID]
+   history = taxi[7]
    #structure of taxi: [name,I,J,state,path,mostrar,ruta,history of moves,clientID]
-   i = 0                 
+   bestI = -1
+   bestJ = -1
+   distance = 1000000
+   i = 0      
    while(i<len(mapa)-1):   
       row = mapa[i]
       j = 0                     
       while(j<len(row)-1):
          if(row[j] == " " and not inHistory(i,j,history)):
-            return [i,j] 
+            d2 = abs(i-taxi[1])+abs(j-taxi[2])
+            if(distance>d2):
+               bestI =i
+               bestJ =j
+               distance = d2
          j = j+1
       i= i+1
-   return []
+   if(bestI != -1):
+      return [bestI,bestJ]
+   else:
+      return []
 
 #***** move taxi one step in path *****
 
@@ -534,6 +575,7 @@ def pasearTaxi(ID):
 
       # long walk over visited spaces
       elif(posBlank != []): #unvisited space
+         print("long walk")
          taxis[ID][4] = Astar(i,j,posBlank[0],posBlank[1]) #sets path 
    
 
