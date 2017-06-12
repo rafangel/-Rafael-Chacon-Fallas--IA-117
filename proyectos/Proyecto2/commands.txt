@@ -1,0 +1,12 @@
+dia 300
+trabajar 50
+iniciarDia 5
+
+taxis 3
+clientes 3
+cliente 4 37
+cliente 27 34
+personas on
+B buscar
+B ruta on
+animar 200
